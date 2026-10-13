@@ -43,11 +43,37 @@ class StateChanged(TfError):
    pass
 
 
+def is_within(path, root):
+   return path == root or root in path.parents
+
+
+def project_for_path(cli, path):
+   checkout = Path(path).resolve()
+   roots = []
+   code, out, err = cli.run(["project", "list", "--json"])
+
+   if code == 0:
+      roots += [(entry["root_path"], entry["name"]) for entry in json.loads(out).get("projects", [])]
+
+   code, out, err = cli.run(["list", "--json"])
+
+   if code == 0:
+      roots += [(task["path"], task["project"]) for task in json.loads(out).get("tasks", []) if task.get("path")]
+
+   matches = [(Path(root).resolve(), project) for root, project in roots if is_within(checkout, Path(root).resolve())]
+
+   if not matches:
+      return None
+
+   deepest_root, project = max(matches, key=lambda match: len(match[0].parts))
+   return project
+
+
 def current_project(cli):
    own_task_id = os.environ.get("TERMIC_TASK_ID")
 
    if not own_task_id:
-      return None
+      return project_for_path(cli, os.getcwd())
 
    code, out, err = cli.run(["status", own_task_id, "--json"])
 

@@ -358,3 +358,44 @@ class ProjectScope(FakeTermic):
       self.assertNotEqual(result.returncode, 0)
       tab_calls = [argv for argv in self.calls_of("tab") if self.OTHER_PLAN_ID in argv]
       self.assertEqual(tab_calls, [])
+
+
+class ProjectScopeOutsideATask(FakeTermic):
+   def setUp(self):
+      super().setUp()
+      self.env.pop("TERMIC_TASK_ID")
+      self.other_root = self.project.parent / "other"
+      self.other_root.mkdir()
+      other_hubs = [make_task(hub, f"3333333{index}-3333-4333-8333-333333333333", project="other", path=str(self.other_root), is_main_checkout=True) for index, hub in enumerate(("main", "plan", "design", "triage"))]
+      self.projects = [{"name": "mine", "root_path": str(self.project)}, {"name": "other", "root_path": str(self.other_root)}]
+      self.set_world({"projects": self.projects, "tasks": other_hubs})
+
+   def test_hubs_of_another_project_with_the_same_names_do_not_count(self):
+      missing = json.loads(self.tf("hubs").stdout)["missing"]
+      self.assertEqual(missing, ["main", "plan", "design", "triage"])
+
+   def test_audit_flags_only_tasks_of_the_project_in_the_working_directory(self):
+      world = self.world()
+      world["tasks"].append(make_task("chat", "44444444-4444-4444-8444-444444444444", project="other", path=str(self.other_root), is_main_checkout=True))
+      world["tasks"].append(make_task("s", "55555555-5555-4555-8555-555555555555", project="mine", path=str(self.project), is_main_checkout=True))
+      self.set_world(world)
+      flags = json.loads(self.tf("audit").stdout)["flags"]
+      self.assertEqual(flags["bad_name"], ["s"])
+
+   def test_a_project_nested_inside_another_wins_over_the_outer_one(self):
+      world = self.world()
+      world["projects"] = [{"name": "outer", "root_path": str(self.project.parent)}, {"name": "other", "root_path": str(self.other_root)}]
+      self.set_world(world)
+      self.project = self.other_root
+      missing = json.loads(self.tf("hubs").stdout)["missing"]
+      self.assertEqual(missing, [])
+
+   def test_a_worktree_outside_the_project_root_resolves_by_task_path(self):
+      worktree = self.project.parent / "worktrees" / "feat-x"
+      worktree.mkdir(parents=True)
+      world = self.world()
+      world["tasks"].append(make_task("feat: x", "66666666-6666-4666-8666-666666666666", project="mine", path=str(worktree)))
+      self.set_world(world)
+      self.project = worktree
+      missing = json.loads(self.tf("hubs").stdout)["missing"]
+      self.assertEqual(missing, ["main", "plan", "design", "triage"])

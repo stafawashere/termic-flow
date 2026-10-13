@@ -102,6 +102,10 @@ def main():
       print(json.dumps({"tasks": tasks}))
       return 0
 
+   if verb == "project list":
+      print(json.dumps({"projects": world.get("projects", [])}))
+      return 0
+
    if verb == "status":
       task = find(world, args[0], flag_value(argv, "--project")) if args else None
       countdown = world.get("vanish_on_status", {})
