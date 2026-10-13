@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""Stand-in for termic-cli. World state lives in $TF_FAKE_WORLD (JSON), every call is appended to
+$TF_FAKE_LOG. Knobs in the world file: "refuse" (verbs that exit 6), "exit" (verb to exit code),
+"vanish_on_status" (task ids that disappear after N status reads)."""
+import json
+import os
+import sys
+import uuid
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+HELP = json.loads((HERE / "help.json").read_text(encoding="utf-8"))
+WORLD_PATH = Path(os.environ["TF_FAKE_WORLD"])
+LOG_PATH = Path(os.environ["TF_FAKE_LOG"])
+
+
+def load():
+   return json.loads(WORLD_PATH.read_text(encoding="utf-8"))
+
+
+def save(world):
+   WORLD_PATH.write_text(json.dumps(world), encoding="utf-8")
+
+
+def find(world, ref, project=None):
+   for task in world["tasks"]:
+      in_project = project is None or task.get("project") == project
+
+      if ref in (task["id"], task["name"]) and in_project:
+         return task
+
+   return None
+
+
+def flag_value(argv, *names):
+   for index, part in enumerate(argv):
+      if part in names and index + 1 < len(argv):
+         return argv[index + 1]
+
+   return None
+
+
+def read_content(argv):
+   value = flag_value(argv, "--content", "-c", "--prompt", "-p")
+   return sys.stdin.read() if value == "-" else (value or "")
+
+
+def verb_of(argv):
+   two = " ".join(argv[:2])
+   known = {command["name"] for command in HELP["commands"]}
+   return two if two in known else argv[0]
+
+
+def task_ref(argv, verb):
+   command = next(entry for entry in HELP["commands"] if entry["name"] == verb)
+   takes_value = {flag["flag"] for flag in command["flags"] if flag["value"]}
+   takes_value |= {flag["short"] for flag in command["flags"] if flag["value"] and flag["short"]}
+   skip_next = False
+
+   for part in argv[len(verb.split()):]:
+      if skip_next:
+         skip_next = False
+         continue
+
+      if part.startswith("-"):
+         skip_next = part in takes_value
+         continue
+
+      return part
+
+   return None
+
+
+def main():
+   argv = sys.argv[1:]
+   verb = verb_of(argv)
+   world = load()
+   content = read_content(argv) if verb in ("scratchpad new", "scratchpad write", "new", "tab", "send") else None
+
+   with open(LOG_PATH, "a", encoding="utf-8") as log:
+      log.write(json.dumps({"argv": argv, "stdin": content}) + "\n")
+
+   if verb in world.get("refuse", []):
+      print("refused: token or sandboxed shell", file=sys.stderr)
+      return 6
+
+   forced = world.get("exit", {}).get(verb)
+
+   if forced is not None:
+      print(f"forced exit {forced}", file=sys.stderr)
+      return forced
+
+   args = [part for part in argv[len(verb.split()):] if not part.startswith("-")]
+
+   if verb == "help":
+      print(json.dumps(HELP))
+      return 0
+
+   if verb in ("list", "ls"):
+      project = flag_value(argv, "--project")
+      tasks = [{key: value for key, value in task.items() if key != "tabs"} for task in world["tasks"] if project is None or task.get("project") == project]
+      print(json.dumps({"tasks": tasks}))
+      return 0
+
+   if verb == "status":
+      task = find(world, args[0], flag_value(argv, "--project")) if args else None
+      countdown = world.get("vanish_on_status", {})
+
+      if task and task["id"] in countdown:
+         countdown[task["id"]] -= 1
+
+         if countdown[task["id"]] < 0:
+            world["tasks"].remove(task)
+            task = None
+
+         save(world)
+
+      if task is None:
+         print("no such task", file=sys.stderr)
+         return 1
+
+      print(json.dumps({"task": {**task, "tabs": task.get("tabs", [])}}))
+      return 0
+
+   if verb == "new":
+      task = {
+         "id": str(uuid.uuid4()),
+         "name": args[0],
+         "project": flag_value(argv, "--project") or "demo",
+         "work_state": "working",
+         "is_main_checkout": "--main" in argv,
+         "diff": {"files_changed": 0, "insertions": 0, "deletions": 0, "untracked": 0},
+         "open_tabs": 1,
+         "group": {"name": "batch"},
+         "props": [],
+         "tabs": [{"id": "tab-1", "index": 1, "kind": "agent", "title": "", "state": "idle", "queued": 0}],
+      }
+      world["tasks"].append(task)
+      save(world)
+      print(f"created {task['name']}")
+      return 0
+
+   if verb == "group" and task_ref(argv, verb):
+      task = find(world, task_ref(argv, verb))
+
+      if task is None:
+         print("no such task", file=sys.stderr)
+         return 1
+
+      task["group"] = {"name": flag_value(argv, "--name"), "color": flag_value(argv, "--color")}
+      save(world)
+      print("ok")
+      return 0
+
+   if verb == "tab" and task_ref(argv, verb):
+      task = find(world, task_ref(argv, verb))
+
+      if task is None:
+         print("no such task", file=sys.stderr)
+         return 1
+
+      tabs = task.setdefault("tabs", [])
+      title = flag_value(argv, "--title") or ""
+      rename_index = flag_value(argv, "--tab")
+
+      if rename_index is not None:
+         for tab in tabs:
+            if str(tab["index"]) == rename_index:
+               tab["title"] = title
+      else:
+         tabs.append({"id": f"tab-{len(tabs) + 1}", "index": len(tabs) + 1, "kind": "agent", "title": title, "state": "idle", "queued": 0})
+         task["open_tabs"] = len(tabs)
+
+      save(world)
+      print("ok")
+      return 0
+
+   if verb == "path":
+      task = find(world, args[0])
+
+      if task is None:
+         return 1
+
+      print(task["path"])
+      return 0
+
+   if verb == "archive":
+      task = find(world, args[0])
+
+      if task is None:
+         return 1
+
+      world["tasks"].remove(task)
+      save(world)
+      return 0
+
+   if verb == "scratchpad new":
+      pad_id = str(uuid.uuid4())
+      world.setdefault("pads", {})[pad_id] = content
+      save(world)
+      print(pad_id)
+      return 0
+
+   if verb == "scratchpad write":
+      pads = world.setdefault("pads", {})
+      pads[args[0]] = (pads.get(args[0], "") + content) if "--append" in argv else content
+      save(world)
+      return 0
+
+   if verb == "scratchpad read":
+      text = world.get("pads", {}).get(args[0])
+
+      if text is None:
+         return 1
+
+      sys.stdout.write(text)
+      return 0
+
+   known = {command["name"] for command in HELP["commands"]} | {"ls"}
+
+   if verb not in known:
+      print(f"unknown verb {verb}", file=sys.stderr)
+      return 2
+
+   print("{}" if "--json" in argv else "ok")
+   return 0
+
+
+sys.exit(main())

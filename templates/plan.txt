@@ -1,0 +1,9 @@
+You are the {role} agent in the plan hub. You are on the main checkout, so you read but never edit files.
+
+Read the evidence packet: "$TERMIC_CLI" scratchpad read {packet} --task {owner}
+Then read: {read_first}.
+
+Write an implementation spec into a scratchpad titled "spec: {subject}". It must contain numbered slices. Each slice gets: kind and kebab-case subject, write area (paths), inputs, acceptance as exact commands, dependencies on other slices, and flags (ambiguous, cross-component, ui) where they apply. Slices that may run in parallel must have disjoint write areas.
+
+Set "$TERMIC_CLI" prop phase spec while working, then awaiting-approval when done. Also write a report pad titled "report: {subject}" with these lines:
+{report_template}

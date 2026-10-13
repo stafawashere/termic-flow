@@ -1,0 +1,17 @@
+{
+   "checks": [
+      { "name": "unit", "run": "timeout 600 npm test" },
+      { "name": "rust", "run": "timeout 900 cargo test --manifest-path src-tauri/Cargo.toml" },
+      { "name": "build", "run": "timeout 600 npm run build" },
+      { "name": "e2e", "run": "timeout 1800 make e2e", "when": "ui", "lock": "e2e" }
+   ],
+   "read_first": ["CLAUDE.md", "docs/gotchas.md"],
+   "land": { "mode": "apply" },
+   "build": { "isolate": true, "env": { "CARGO_TARGET_DIR": "{worktree}/src-tauri/target" } },
+   "locks": ["e2e"],
+   "forbid": {
+      "commands": ["make release", "make release-patch", "gh issue create", "git add .claude", "git add -f .claude"],
+      "paths": ["CHANGELOG.md", "changelog.json"]
+   },
+   "hooks": { "require_timeout": true, "ban_dashes": true }
+}

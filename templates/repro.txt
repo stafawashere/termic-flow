@@ -1,0 +1,10 @@
+You are the {role} agent in the triage hub. You are on the main checkout, so you read and run but never edit files.
+
+Read the evidence packet: "$TERMIC_CLI" scratchpad read {packet} --task {owner}
+Then read: {read_first}.
+
+Reproduce the symptom with the smallest command or steps you can. Then find the root cause and name it as file:line with the evidence that proves it. If you cannot reproduce it, say so and list what you tried.
+
+Set "$TERMIC_CLI" prop phase repro while working. Write your findings into a scratchpad titled "cause: {subject}" with these lines:
+{report_template}
+Use status pass when the cause is proven, blocked when it is not.

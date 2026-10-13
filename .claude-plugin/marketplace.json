@@ -1,0 +1,16 @@
+{
+   "name": "termic-flow",
+   "owner": {
+      "name": "stafawashere"
+   },
+   "metadata": {
+      "description": "Termic+ orchestration workflows for Claude Code"
+   },
+   "plugins": [
+      {
+         "name": "termic-flow",
+         "source": "./",
+         "description": "Termic+ orchestration workflows for Claude Code"
+      }
+   ]
+}

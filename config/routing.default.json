@@ -1,0 +1,17 @@
+{
+   "ladder": ["haiku", "sonnet", "opus", "fable"],
+   "allow_fable": false,
+   "rules": [
+      { "id": "mech", "roles": ["scout", "packer", "status", "audit"], "model": "haiku" },
+      { "id": "orch", "roles": ["orchestrate"], "model": "sonnet" },
+      { "id": "plan", "roles": ["plan", "spec"], "model": "opus" },
+      { "id": "triage", "roles": ["repro"], "model": "opus" },
+      { "id": "review-risk", "roles": ["review"], "risk": ["high"], "model": "opus" },
+      { "id": "review", "roles": ["review"], "model": "sonnet" },
+      { "id": "impl-hard-kind", "roles": ["impl", "test", "e2e"], "kinds": ["redesign", "perf"], "model": "opus" },
+      { "id": "impl-ambiguous", "roles": ["impl"], "flags": ["ambiguous"], "model": "opus" },
+      { "id": "impl-cross", "roles": ["impl"], "flags": ["cross-component"], "model": "opus" },
+      { "id": "impl", "roles": ["impl", "test", "e2e", "apply"], "model": "sonnet" },
+      { "id": "fallback", "model": "sonnet" }
+   ]
+}

@@ -1,0 +1,26 @@
+{
+   "hubs": ["main", "plan", "design", "triage"],
+   "kinds": {
+      "feat": "teal",
+      "fix": "red",
+      "redesign": "purple",
+      "perf": "orange",
+      "docs": "blue",
+      "chore": "yellow",
+      "review": "green",
+      "ops": "pink"
+   },
+   "roles": ["orchestrate", "plan", "spec", "impl", "review", "test", "e2e", "repro", "audit", "apply"],
+   "agent": "claude",
+   "checks": [],
+   "read_first": ["CLAUDE.md"],
+   "land": { "mode": "apply", "modes": ["apply", "patch", "pr"] },
+   "build": { "isolate": false, "env": {} },
+   "locks": [],
+   "scaffold": { "categories": [] },
+   "forbid": {
+      "commands": [],
+      "paths": []
+   },
+   "hooks": { "require_timeout": false, "ban_dashes": true }
+}
