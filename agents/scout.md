@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Reads Termic state (tf snapshot, tf audit, status, diff) and returns a compact JSON digest. Use before any orchestration decision instead of reading raw CLI output in the main context.
+description: Reads Termic state (tf snapshot, tf audit, status, diff) into a compact JSON digest. Use before any orchestration decision instead of reading raw CLI output.
 tools: Bash, Read
 model: haiku
 ---

@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Set up or repair a project's Termic agent environment for termic-flow. Works on a new project and on one already developed in Termic. Detects checks and rules, writes the project profile, creates the hub tasks, then audits and restructures the sidebar with approval.
+description: Set up or repair a project's Termic agent environment for termic-flow. Writes the project profile, creates hub tasks and restructures the sidebar with approval.
 argument-hint: [--share] [--skip-restructure]
 ---
 

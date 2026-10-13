@@ -8,6 +8,9 @@ Then read: {read_first}.
 Look for correctness bugs, missed acceptance criteria, unsafe edits to tests or gates, and anything the report claims but the diff does not show. Rerun the checks that matter:
 {checks}
 
+Run heavy commands (full test discovery, builds) in the background with output to a file, keep at most 2 heavy jobs at once, and prefer -k or one module.
+
 Set "$TERMIC_CLI" prop phase review while working. Write your verdict into a scratchpad titled "review: {task}" with these lines:
 {report_template}
 Use status pass only if you would land it as is. List each finding under risks as file:line and one sentence.
+Create it with: "$TERMIC_CLI" scratchpad new --task "$TERMIC_TASK_ID" --title "review: {task}" --content -

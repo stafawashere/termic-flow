@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Independent reviewer for one Termic task's diff. Returns a pass, fail or blocked verdict with file:line findings. Use for quick in-session checks; the review workflow uses a fresh Termic tab instead when risk is high.
+description: Independent reviewer of one Termic task's diff. Returns pass, fail or blocked with file:line findings. Use for quick in-session checks; high-risk reviews use a fresh tab.
 tools: Bash, Read, Grep, Glob
 model: sonnet
 ---

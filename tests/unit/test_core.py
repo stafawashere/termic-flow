@@ -60,3 +60,15 @@ class Signing(unittest.TestCase):
    def test_em_dash_is_refused(self):
       with self.assertRaises(core.TfError):
          core.check_text("a " + core.EM_DASH + " b")
+
+
+class DoneLine(unittest.TestCase):
+   def test_done_line_lets_the_worker_shell_fill_its_own_identity(self):
+      env = {"TERMIC_TASK": "main", "TERMIC_TASK_ID": "abc-123"}
+
+      with mock.patch.dict(os.environ, env):
+         signed = core.sign("do the thing")
+
+      self.assertIn("-p \"[message from agent:claude task:$TERMIC_TASK id:$TERMIC_TASK_ID]", signed)
+      self.assertIn("done $TERMIC_TASK report=", signed)
+      self.assertNotIn("<your task>", signed)

@@ -42,3 +42,20 @@ class Templates(unittest.TestCase):
       for template in TEMPLATES:
          for dash in BANNED_DASHES:
             self.assertNotIn(dash, self.rendered(template), template)
+
+
+class PadsLandInTheWorkTask(unittest.TestCase):
+   def test_every_pad_create_is_pinned_to_the_task(self):
+      profile = deep_merge(
+         read_json(PLUGIN_ROOT / "profiles" / "default.json"),
+         read_json(PLUGIN_ROOT / "profiles" / "termic-plus.json"),
+      )
+
+      for template in TEMPLATES:
+         text = render(profile, template, task="fix: x", task_id="id-1", packet="pad-1", report="pad-2", subject="x")
+         create_lines = [line for line in text.splitlines() if "scratchpad new" in line]
+
+         self.assertTrue(create_lines, template)
+
+         for line in create_lines:
+            self.assertIn("--task \"$TERMIC_TASK_ID\"", line, template)

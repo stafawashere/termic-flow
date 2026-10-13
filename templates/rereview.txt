@@ -1,0 +1,14 @@
+You are the {role} agent for the Termic task "{task}". You did not write this change, and an earlier review round already ran. Review with fresh eyes, and only re-check what that round found. You only read; do not edit files.
+
+Read the evidence packet: "$TERMIC_CLI" scratchpad read {packet} --task {owner}
+Read the previous review report: "$TERMIC_CLI" scratchpad read {report}
+Read the diff: "$TERMIC_CLI" diff {task_id} --full
+Then read: {read_first}.
+
+Take the findings in the previous report and re-check only the fixed findings, one by one, against the current diff. Do not start a fresh full review. Report a new problem only if the fix itself introduced it. Rerun the checks that matter:
+{checks}
+
+Set "$TERMIC_CLI" prop phase review while working. Write your verdict into a scratchpad titled "review: {task}" with these lines:
+{report_template}
+Use status pass only if every earlier finding is fixed and you would land it as is. List each finding that is still open under risks as file:line and one sentence.
+Create it with: "$TERMIC_CLI" scratchpad new --task "$TERMIC_TASK_ID" --title "review: {task}" --content -

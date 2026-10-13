@@ -197,8 +197,19 @@ def main():
    if verb == "scratchpad new":
       pad_id = str(uuid.uuid4())
       world.setdefault("pads", {})[pad_id] = content
+      title = flag_value(argv, "--title")
+
+      if title is not None:
+         world.setdefault("titles", {})[pad_id] = title
+
       save(world)
       print(pad_id)
+      return 0
+
+   if verb == "scratchpad list":
+      for pad_id, title in world.get("titles", {}).items():
+         print(f"{pad_id}  {title}")
+
       return 0
 
    if verb == "scratchpad write":

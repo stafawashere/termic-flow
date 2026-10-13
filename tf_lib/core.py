@@ -79,7 +79,7 @@ def sign(body, agent="claude"):
    if own_id:
       reply = (
          f"\nWhen done, reply with one line: \"$TERMIC_CLI\" send {own_id}{tab_flag} -p "
-         f"'[message from agent:<you> task:<your task> id:<your id>] done <your task> report=<report pad id>'"
+         f"\"[message from agent:{agent} task:$TERMIC_TASK id:$TERMIC_TASK_ID] done $TERMIC_TASK report=<report pad id>\""
       )
 
    return f"[message from {me}]\n{body}{reply}\n-- {me}"

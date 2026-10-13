@@ -10,7 +10,10 @@ Set your tab status as you go: "$TERMIC_CLI" prop phase impl, then test, then re
 
 Do not commit. Do not open issues or PRs.
 
+Run heavy commands (full test discovery, builds) in the background with output to a file, keep at most 2 heavy jobs at once, and prefer -k or one module.
+
 When finished, write your report into a scratchpad in your task with exactly these lines:
 {report_template}
-Create it with: "$TERMIC_CLI" scratchpad new --title "report: {task}" --content -
+N is the round, starting at r1. A later round writes a new pad (r2, r3) and never overwrites an earlier one.
+Create it with: "$TERMIC_CLI" scratchpad new --task "$TERMIC_TASK_ID" --title "report: {task} r<N>" --content -
 Keep chat output short; the report pad is what gets read.

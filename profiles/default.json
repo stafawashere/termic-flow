@@ -8,6 +8,7 @@
       "docs": "blue",
       "chore": "yellow",
       "review": "green",
+      "audit": "green",
       "ops": "pink"
    },
    "roles": ["orchestrate", "plan", "spec", "impl", "review", "test", "e2e", "repro", "audit", "apply"],

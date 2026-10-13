@@ -1,6 +1,6 @@
 ---
 name: packer
-description: Builds an evidence packet scratchpad for a worker (goal, acceptance, files to read, constraints) and returns only its pad id. Use before tf new or tf tab so workers read one pad instead of a pasted prompt.
+description: Builds a worker's evidence packet pad (goal, acceptance, files, constraints) and returns its id. Use before tf new or tf tab instead of a pasted prompt.
 tools: Bash, Read, Grep, Glob
 model: haiku
 ---

@@ -1,6 +1,6 @@
 ---
 name: update
-description: Bring a project's termic-flow environment up to the installed plugin version. Migrates the project profile, reports legacy skills to retire, and re-checks the hubs and sidebar against the current conventions.
+description: Bring a project's termic-flow environment up to the installed plugin version. Migrates the profile, reports legacy skills to retire, re-checks hubs and sidebar.
 ---
 
 Load `drive` and start a run with workflow `update`.

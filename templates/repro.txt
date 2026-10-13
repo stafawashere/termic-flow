@@ -5,6 +5,9 @@ Then read: {read_first}.
 
 Reproduce the symptom with the smallest command or steps you can. Then find the root cause and name it as file:line with the evidence that proves it. If you cannot reproduce it, say so and list what you tried.
 
+Run heavy commands (full test discovery, builds) in the background with output to a file, keep at most 2 heavy jobs at once, and prefer -k or one module.
+
 Set "$TERMIC_CLI" prop phase repro while working. Write your findings into a scratchpad titled "cause: {subject}" with these lines:
 {report_template}
 Use status pass when the cause is proven, blocked when it is not.
+Create it with: "$TERMIC_CLI" scratchpad new --task "$TERMIC_TASK_ID" --title "cause: {subject}" --content -

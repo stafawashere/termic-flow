@@ -14,17 +14,57 @@ CLI_WORD = r"(?:termic-cli|\$\{?TERMIC_CLI\}?\"?|(?<![\w-])termic)"
 RAW_DESTRUCTIVE = re.compile(CLI_WORD + r"\s+(archive|quit|apply|tab\s+close|project\s+remove|schedule\s+delete)\b")
 USER_ONLY = re.compile(r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*tf\s+(approve|tested|accept)\b(?P<rest>[^;&|\n]*)")
 AUTO_MARKERS = ("approve", "tested")
+HELP_FLAGS = ("-h", "--help")
 RAW_PR = re.compile(r"\b(gh|glab)\s+(pr|mr)\s+create\b")
 TF_TEXT = re.compile(r"(?:^|[\s;&|(])tf\s+(log|send|group|packet)\b")
 TEST_RUNNERS = re.compile(
    r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*(?P<timeout>timeout\s+\d+\s+)?(?:python3?\s+-m\s+|uv\s+run\s+|poetry\s+run\s+|npx\s+)?"
    r"(npm\s+(?:run\s+)?test|vitest|pytest|cargo\s+test|make\s+e2e)\b"
 )
+HEAVY_RUNS = re.compile(
+   r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*(?:timeout\s+\d+\s+)?"
+   r"(?P<run>python3?\s+-m\s+unittest\s+discover\b[^;&|\n]*|make\b|swift\s+build\b|npm\s+run\s+build\b)"
+)
+ORCHESTRATOR_PREFIX = "ops:"
+CHAIN_SEPARATOR = re.compile(r"(&&|\|\||;|\n|(?<![<>])&(?!>))")
 
 
 def block(reason):
    print(f"termic-flow: {reason}", file=sys.stderr)
    sys.exit(2)
+
+
+def chain_links(command):
+   parts = CHAIN_SEPARATOR.split(command)
+   links = parts[0::2]
+   separators = parts[1::2] + [""]
+   return [(link, separator == "&") for link, separator in zip(links, separators)]
+
+
+def warn_heavy_foreground(command, tool_input):
+   task_name = os.environ.get("TERMIC_TASK", "")
+   is_worker = bool(os.environ.get("TERMIC_TASK_ID")) and not task_name.startswith(ORCHESTRATOR_PREFIX)
+   whole_call_backgrounded = tool_input.get("run_in_background") is True
+
+   if not is_worker or whole_call_backgrounded:
+      return
+
+   for link, link_backgrounded in chain_links(command):
+      if link_backgrounded:
+         continue
+
+      for heavy in HEAVY_RUNS.finditer(link):
+         is_targeted = "-k" in heavy.group("run").split()
+
+         if is_targeted:
+            continue
+
+         print(
+            "termic-flow: heavy command in the foreground; run it in the background with output to a file, "
+            "keep at most 2 heavy jobs at once, and prefer -k or one module",
+            file=sys.stderr,
+         )
+         return
 
 
 def check_bash(command, profile):
@@ -35,6 +75,12 @@ def check_bash(command, profile):
 
    for user_only in USER_ONLY.finditer(command):
       verb = user_only.group(1)
+      help_tokens = user_only.group("rest").split()
+      is_help_only = bool(help_tokens) and all(token in HELP_FLAGS for token in help_tokens)
+
+      if is_help_only:
+         continue
+
       asks_auto = "--auto" in user_only.group("rest").split()
       auto_allowed = profile.get("auto_approve") is True and verb in AUTO_MARKERS
 
@@ -77,6 +123,7 @@ def main():
 
    if tool == "Bash":
       check_bash(tool_input.get("command", ""), profile)
+      warn_heavy_foreground(tool_input.get("command", ""), tool_input)
    elif tool in ("Write", "Edit", "MultiEdit"):
       check_file_write(tool_input.get("file_path", ""), profile)
 

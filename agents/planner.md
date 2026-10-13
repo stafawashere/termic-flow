@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Turns an idea into a sliced implementation spec in a scratchpad, with disjoint write areas and exact acceptance commands per slice. Use for plan-build when a fresh Termic plan tab is not wanted.
+description: Turns an idea into a sliced spec pad with disjoint write areas and exact acceptance commands per slice. Use for plan-build without a fresh Termic plan tab.
 tools: Bash, Read, Grep, Glob
 model: opus
 ---

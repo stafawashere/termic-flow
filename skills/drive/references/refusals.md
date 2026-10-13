@@ -11,3 +11,5 @@
 | CLI exit 10 after apply | Main checkout conflicted | Stop; the user resolves it |
 
 Every fallback line revalidates its task before acting, so the user can run the script late.
+
+`tf do` re-reads the task right before acting. Approval and tested tokens are per task, and only the user can run `tf approve` and `tf tested`. If `tf fallback add` is itself refused, append the command by hand to the file `tf fallback path` printed at run start. Carry on with independent steps after any refusal.

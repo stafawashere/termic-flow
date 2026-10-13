@@ -5,7 +5,7 @@ import shlex
 import subprocess
 import sys
 
-from tf_lib import core, land, migrate, prompts, report, routing, runs, safety, tokens
+from tf_lib import core, land, migrate, prompts, report, resume, routing, runs, safety, tokens
 from tf_lib import setup as project_setup
 from tf_lib.core import Cli, TfError
 from tf_lib.profile import load_profile
@@ -90,11 +90,30 @@ def record_task(cli, name, role, choice):
       pass
 
 
+def latest_report_pad(cli, task):
+   code, out, err = cli.run(["scratchpad", "list", "--task", task])
+
+   if code != 0:
+      raise TfError(f"scratchpad list exited {code}: {err.strip()}")
+
+   name = safety.guard(cli, task)["name"]
+   return report.pick_latest_round(report.parse_pad_list(out), name)
+
+
 def read_report(cli, args):
-   text = runs.pad_read(cli, args.pad, args.task)
+   picked = None
+
+   if args.pad is None and not args.task:
+      raise TfError("report needs a pad id or --task")
+
+   if args.pad is None:
+      picked = latest_report_pad(cli, args.task)
+
+   pad = picked["pad"] if picked else args.pad
+   text = runs.pad_read(cli, pad, args.task)
 
    try:
-      return report.parse_report(text)
+      return {**report.parse_report(text), **(picked or {})}
    except TfError as error:
       if not args.task:
          raise
@@ -109,30 +128,49 @@ def read_report(cli, args):
       return {"status": "pass", "accepted": accepted["note"], "rejected_because": str(error)}
 
 
+def positive_int(text):
+   value = int(text)
+
+   if value < 1:
+      raise argparse.ArgumentTypeError("must be 1 or more")
+
+   return value
+
+
 def cmd_tab(cli, profile, args):
    core.check_role(profile, args.role)
    target = safety.guard(cli, args.task)
    role_base = args.role.split("-", 1)[0]
    choice = route_for(profile, args, role_base)
+   round_number = args.round or 1
+   is_later_round = round_number > 1
+   lacks_report = args.report is None
+
+   if is_later_round and lacks_report:
+      raise TfError("--round above 1 needs --report <previous review pad>")
+
+   title = f"{args.role}-r{round_number}" if is_later_round else args.role
+   is_review = role_base == "review"
+   default_template = "rereview" if is_later_round and is_review else prompts.template_for(args.role)
    body = prompts.render(
       profile,
-      args.template or prompts.template_for(args.role),
+      args.template or default_template,
       task=target["name"],
       task_id=target["id"],
       packet=args.packet,
       report=args.report,
       subject=args.subject,
       flags=args.flag,
-      role=args.role,
+      role=title,
    )
-   argv = ["tab", target["id"], "--agent", profile.get("agent", "claude"), "--model", choice["model_id"], "--title", args.role, "-p", "-"]
+   argv = ["tab", target["id"], "--agent", profile.get("agent", "claude"), "--model", choice["model_id"], "--title", title, "-p", "-"]
    code, out, err = cli.run(argv, stdin=body)
 
    if code != 0:
       raise TfError(f"tab exited {code}: {err.strip()}")
 
-   log_quietly(cli, f"tab {args.role} in '{target['name']}' model={choice['model']} rule={choice['rule']}")
-   return {"task": target["name"], "role": args.role, "model": choice["model"], "rule": choice["rule"]}
+   log_quietly(cli, f"tab {title} in '{target['name']}' model={choice['model']} rule={choice['rule']}")
+   return {"task": target["name"], "role": title, "model": choice["model"], "rule": choice["rule"]}
 
 
 def cmd_send(cli, profile, args):
@@ -146,10 +184,30 @@ def cmd_send(cli, profile, args):
    return "sent"
 
 
+def nudge(cli, profile, task):
+   text = f"You have been silent past the stall limit. Carry on with task '{task['name']}', or set prop blocked with a reason and write your report pad."
+   body = core.check_text(core.sign(text, profile.get("agent", "claude")))
+   code, output, _ = safety.run_mutation(cli, ["send", task["id"], "--tab", "impl", "-p", body], current_slug())
+
+   if code != 0:
+      raise TfError(f"do send exited {code}: {output.strip()}")
+
+
 def cmd_group(cli, profile, args):
    colour = core.kind_colour(profile, args.kind)
    core.check_text(args.name)
-   code, _, err = cli.run(["group", "--name", args.name, "--color", colour])
+   project = safety.current_project(cli)
+   list_args = ["list", "--project", project] if project else ["list"]
+   groups = [(task.get("group") or {}) for task in cli.json(list_args)["tasks"]]
+   existing = next((group for group in groups if group.get("name") == args.name), None)
+   argv = ["group", "--name", args.name]
+
+   if existing:
+      colour = existing.get("color") or colour
+   else:
+      argv += ["--color", colour]
+
+   code, _, err = cli.run(argv)
 
    if code != 0:
       raise TfError(f"group exited {code}: {err.strip()}")
@@ -169,6 +227,11 @@ def cmd_do(cli, profile, args):
       return EXIT_FELL_BACK
 
    log_quietly(cli, f"do {' '.join(args.argv)} -> exit {code}")
+   work_left = code == 0 and safety.verb_of(args.argv) in ("apply", "archive")
+
+   if work_left:
+      runs.end_open_run(cli)
+
    sys.stdout.write(output)
    return code
 
@@ -214,7 +277,16 @@ def cmd_fallback_add(cli, profile, args):
 
 def cmd_run(cli, profile, args):
    if args.action == "start":
-      return runs.run_start(cli, args.workflow, args.slug)
+      return runs.run_start(cli, args.workflow, args.slug, profile)
+
+   if args.action == "end":
+      return runs.run_end(cli)
+
+   if args.action == "resume":
+      return resume.resume(cli, profile, args.workflow)
+
+   if args.action == "stall-check":
+      return runs.stall_check(cli, profile, lambda task: nudge(cli, profile, task))
 
    run = runs.current_run()
 
@@ -438,6 +510,7 @@ def build_parser():
    tab.add_argument("--report")
    tab.add_argument("--subject")
    tab.add_argument("--kind")
+   tab.add_argument("--round", type=positive_int)
    add_route_flags(tab)
 
    send = sub.add_parser("send")
@@ -453,7 +526,7 @@ def build_parser():
    packet.add_argument("--task")
 
    rep = sub.add_parser("report")
-   rep.add_argument("pad")
+   rep.add_argument("pad", nargs="?")
    rep.add_argument("--task")
 
    log = sub.add_parser("log")
@@ -461,7 +534,7 @@ def build_parser():
    log.add_argument("--pad")
 
    run = sub.add_parser("run")
-   run.add_argument("action", choices=["start", "stage", "show"])
+   run.add_argument("action", choices=["start", "stage", "show", "end", "resume", "stall-check"])
    run.add_argument("workflow", nargs="?")
    run.add_argument("slug", nargs="?")
 
@@ -562,6 +635,7 @@ def dispatch(args):
    if command == "patch":
       result = land.patch_land(cli, args.task)
       log_quietly(cli, f"patch-landed '{result['task']}': {', '.join(result['landed_files'])}")
+      runs.end_open_run(cli)
       return result
 
    if command == "packet":
