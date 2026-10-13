@@ -222,7 +222,7 @@ def cmd_do(cli, profile, args):
 
    if fallback:
       log_quietly(cli, f"REFUSED {' '.join(args.argv)}; queued in {fallback}")
-      cli.run(["prop", "blocked", "needs-you"])
+      cli.run(["prop", "blocked", "needs-you", *runs.open_run_task_flags()])
       print(f"refused; run it yourself:  ! bash {fallback}", file=sys.stderr)
       return EXIT_FELL_BACK
 
@@ -277,7 +277,8 @@ def cmd_fallback_add(cli, profile, args):
 
 def cmd_run(cli, profile, args):
    if args.action == "start":
-      return runs.run_start(cli, args.workflow, args.slug, profile)
+      task_id = safety.fetch_task(cli, args.task)["id"] if args.task else None
+      return runs.run_start(cli, args.workflow, args.slug, profile, task=task_id)
 
    if args.action == "end":
       return runs.run_end(cli)
@@ -292,7 +293,7 @@ def cmd_run(cli, profile, args):
 
    if args.action == "stage":
       runs.update_header(cli, run["pad"], stage=args.workflow)
-      cli.run(["prop", "phase", args.workflow])
+      cli.run(["prop", "phase", args.workflow, *runs.run_task_flags(run)])
       runs.log_line(cli, f"stage {args.workflow}")
       return "ok"
 
@@ -537,6 +538,7 @@ def build_parser():
    run.add_argument("action", choices=["start", "stage", "show", "end", "resume", "stall-check"])
    run.add_argument("workflow", nargs="?")
    run.add_argument("slug", nargs="?")
+   run.add_argument("--task")
 
    do = sub.add_parser("do")
    do.add_argument("--run")

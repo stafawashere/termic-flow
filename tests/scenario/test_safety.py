@@ -399,3 +399,39 @@ class ProjectScopeOutsideATask(FakeTermic):
       self.project = worktree
       missing = json.loads(self.tf("hubs").stdout)["missing"]
       self.assertEqual(missing, ["main", "plan", "design", "triage"])
+
+   def add_own_plan_hub(self):
+      own_plan_id = "77777777-7777-4777-8777-777777777777"
+      world = self.world()
+      world["tasks"].append(make_task("plan", own_plan_id, project="mine", path=str(self.project), is_main_checkout=True))
+      self.set_world(world)
+      return own_plan_id
+
+   def test_run_start_on_a_hub_targets_that_hub_in_this_project(self):
+      own_plan_id = self.add_own_plan_hub()
+      result = self.tf("run", "start", "dispatch", "invoices", "--task", "plan")
+      self.assertEqual(result.returncode, 0, result.stderr)
+      pad_calls = self.calls_of("scratchpad new")
+      self.assertEqual(len(pad_calls), 1)
+      self.assertEqual(pad_calls[0][pad_calls[0].index("--task") + 1], own_plan_id)
+      prop_targets = [argv[argv.index("--task") + 1] for argv in self.calls_of("prop") if "--task" in argv]
+      self.assertEqual(prop_targets, [own_plan_id, own_plan_id])
+
+   def test_run_stage_keeps_the_hub_target(self):
+      own_plan_id = self.add_own_plan_hub()
+      self.tf("run", "start", "dispatch", "invoices", "--task", "plan")
+      result = self.tf("run", "stage", "review")
+      self.assertEqual(result.returncode, 0, result.stderr)
+      stage_prop = self.calls_of("prop")[-1]
+      self.assertEqual(stage_prop, ["prop", "phase", "review", "--task", own_plan_id])
+
+   def test_run_start_on_a_hub_does_not_rename_the_callers_task(self):
+      own_plan_id = self.add_own_plan_hub()
+      self.env["TERMIC_TASK_ID"] = "88888888-8888-4888-8888-888888888888"
+      self.env["TERMIC_TASK"] = "claude-1"
+      world = self.world()
+      world["tasks"].append(make_task("claude-1", self.env["TERMIC_TASK_ID"], project="mine", path=str(self.project), is_main_checkout=True))
+      self.set_world(world)
+      result = self.tf("run", "start", "dispatch", "invoices", "--task", "plan")
+      self.assertEqual(result.returncode, 0, result.stderr)
+      self.assertEqual(self.calls_of("rename"), [])

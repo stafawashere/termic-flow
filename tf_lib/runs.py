@@ -139,15 +139,30 @@ def rename_orchestrator(cli, profile, workflow, slug):
    cli.run(["rename", task_id, new_name])
 
 
-def run_start(cli, workflow, slug, profile=None):
-   header = {"slug": slug, "workflow": workflow, "stage": "start", "tasks": {}, "pending": []}
-   pad = pad_new(cli, f"run: {slug}", render_pad(header, []))
-   run = {"pad": pad, "slug": slug, "workflow": workflow}
-   current_run_file().write_text(json.dumps(run), encoding="utf-8")
-   cli.run(["prop", "run", pad])
-   cli.run(["prop", "phase", workflow])
+def run_task_flags(run):
+   return ["--task", run["task"]] if run.get("task") else []
 
-   if profile is not None:
+
+def open_run_task_flags():
+   has_open_run = current_run_file().is_file()
+   return run_task_flags(current_run()) if has_open_run else []
+
+
+def run_start(cli, workflow, slug, profile=None, task=None):
+   header = {"slug": slug, "workflow": workflow, "stage": "start", "tasks": {}, "pending": []}
+   pad = pad_new(cli, f"run: {slug}", render_pad(header, []), task=task)
+   run = {"pad": pad, "slug": slug, "workflow": workflow}
+
+   if task:
+      run["task"] = task
+
+   current_run_file().write_text(json.dumps(run), encoding="utf-8")
+   cli.run(["prop", "run", pad, *run_task_flags(run)])
+   cli.run(["prop", "phase", workflow, *run_task_flags(run)])
+
+   should_rename = profile is not None and not task
+
+   if should_rename:
       rename_orchestrator(cli, profile, workflow, slug)
 
    return run

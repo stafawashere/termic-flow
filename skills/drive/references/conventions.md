@@ -13,7 +13,7 @@ Defaults come from `profiles/default.json`; a project overrides them in `.termic
 ## Run habits
 
 - `tf` wraps `$TERMIC_CLI`. It validates names, routes models, signs prompts, revalidates state before every mutation and gates destructive verbs. Call the CLI directly only for reads (`list`, `status`, `diff`, `result`, `scratchpad read`).
-- `tf run start <workflow> <slug>` opens the run pad, sets `run` and `phase` props on your tab, and renames a default-named task (such as `claude-1`) to `ops: <workflow> <slug>`.
+- `tf run start <workflow> <slug>` opens the run pad, sets `run` and `phase` props on your tab, and renames a default-named task (such as `claude-1`) to `ops: <workflow> <slug>`. Outside a task, or from a checkout shared by several hubs, pass `--task <hub>` to put the pad and props on that hub. The run then keeps that target for `tf run stage`, and nothing is renamed.
 - Ask the `scout` subagent for state instead of reading `list` output yourself.
 - The user reads the app, not the chat. Status goes in the run pad and props. Chat replies are one line per stage, plus the pad id.
 - Reading happens in hub tabs. Writing happens only in work tasks created by `tf new`, each in its own worktree.
