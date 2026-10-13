@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1
+
+### Added
+
+- `tf run start --task <hub>` opens the run pad and sets the `run` and `phase` props on that hub. It works outside a task and from a checkout several hubs share. `tf run stage` keeps the same target.
+
+### Fixed
+
+- Outside a task, `tf hubs`, `tf audit`, `tf snapshot` and bare task names resolve to the project of the working directory instead of every registered project.
+
 ## 0.4.0
 
 ### Added

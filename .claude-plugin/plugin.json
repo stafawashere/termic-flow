@@ -1,7 +1,7 @@
 {
    "name": "termic-flow",
    "displayName": "Termic Flow",
-   "version": "0.4.0",
+   "version": "0.4.1",
    "description": "Termic+ plugin for Claude Code. Orchestrate Claude agents across Termic tasks, tabs, groups and scratchpads with revalidated, approval-gated, token-lean workflows.",
    "author": { "name": "stafawashere" },
    "license": "MIT",
