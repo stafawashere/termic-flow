@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<title>Banner</title>
+<style>
+:root {
+   --bg: #f6f5f1;
+   --surface: #ecebe5;
+   --ink: #1b1d1f;
+   --muted: #4f5358;
+   --accent: #2c6a59;
+}
+
+@media (prefers-color-scheme: dark) {
+   :root {
+      --bg: #121518;
+      --surface: #1b1f23;
+      --ink: #e8e6e1;
+      --muted: #a6aaae;
+      --accent: #72c4a8;
+   }
+}
+
+html, body {
+   margin: 0;
+   background: transparent;
+}
+
+.banner {
+   position: relative;
+   width: 900px;
+   height: 300px;
+   overflow: hidden;
+   box-sizing: border-box;
+   background: var(--bg);
+   color: var(--ink);
+   font-family: ui-monospace, monospace;
+}
+
+.title {
+   margin: 0;
+   font-size: 64px;
+   font-weight: 600;
+   line-height: 1;
+   letter-spacing: -0.02em;
+}
+
+.tagline {
+   margin: 18px 0 0;
+   font-size: 36px;
+   color: var(--muted);
+}
+
+.row {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   height: 34px;
+   padding: 0 14px;
+   border-radius: 6px;
+   font-size: 17px;
+   color: var(--muted);
+}
+
+.row .dot {
+   width: 9px;
+   height: 9px;
+   border-radius: 50%;
+   border: 2px solid var(--muted);
+   flex: none;
+}
+
+.row.live {
+   background: var(--surface);
+}
+
+.row.live .dot {
+   background: var(--accent);
+   border-color: var(--accent);
+}
+
+.banner {
+   display: flex;
+   align-items: center;
+   gap: 56px;
+   padding: 0 64px;
+   border: 1px solid var(--surface);
+}
+
+.list {
+   width: 230px;
+   display: flex;
+   flex-direction: column;
+   gap: 4px;
+   padding-left: 18px;
+   border-left: 2px solid var(--accent);
+}
+</style>
+</head>
+<body>
+<div class="banner">
+   <div class="list">
+      <div class="row live" data-text data-role="decorative"><span class="dot"></span>fix: parser</div>
+      <div class="row" data-text data-role="decorative"><span class="dot"></span>feat: setup</div>
+      <div class="row" data-text data-role="decorative"><span class="dot"></span>review: patch</div>
+      <div class="row" data-text data-role="decorative"><span class="dot"></span>docs: readme</div>
+   </div>
+   <div>
+      <h1 class="title" data-text data-role="title">termic-flow</h1>
+      <p class="tagline" data-text data-role="tagline">Termic+ Claude Code plugin</p>
+   </div>
+</div>
+</body>
+</html>

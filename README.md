@@ -1,3 +1,8 @@
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="img/banner-dark.png">
+   <img src="img/banner-light.png" alt="termic-flow, a Termic+ plugin for Claude Code" width="900">
+</picture>
+
 # termic-flow
 
 A Termic+ plugin for Claude Code. It splits engineering work into [Termic](https://termic.dev) tasks, and each change gets its own git worktree, agent, review tab and scratchpad report. You watch progress in the Termic sidebar instead of scrolling back through chat.
